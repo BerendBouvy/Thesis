@@ -1,9 +1,10 @@
 import numpy as np
 import nonLinFunc
+import csv
 
 
 class DataSim:
-    def __init__(self, n_samples=100, n_features=1, std_A=1, random_seed=47, non_linear_ratio=0.5):
+    def __init__(self, n_samples=100, n_features=1, rank_A=1, std_A=1, random_seed=47, non_linear_ratio=0.5):
         """ Initialize the DataSim object.
         Args:
             n_samples (int): Number of samples to generate.
@@ -15,13 +16,13 @@ class DataSim:
         self.rng = np.random.default_rng(self.random_seed)
         self.n_samples = n_samples
         self.n_features = n_features
+        self.rank_A = rank_A
         self.std_A = std_A
         self.non_linear_ratio = non_linear_ratio
         self.A = self.createA()
         self.cov_matrix = self.A @ self.A.T
         self.linear_data = self.createLinearData()
         self.non_linear_data, self.metadata = self.createNonLinearData()
-        print(self.metadata)
 
     def createA(self):
         """ Create a random matrix A with specified standard deviation.
@@ -32,7 +33,7 @@ class DataSim:
         Returns:
             np.ndarray: Random matrix A of shape (n_features, n_features).
         """
-        return self.rng.normal(size=(self.n_features, self.n_features), scale=self.std_A)
+        return self.rng.normal(size=(self.n_features, self.rank_A), scale=self.std_A)
 
     def createLinearData(self):
         """ Create linear data based on the random matrix A.
@@ -87,21 +88,76 @@ class DataSim:
             func = self.rng.choice(list_of_functions)
             if func == nonLinFunc.polynomial:
                 p = self.rng.integers(*possible_params[0])
-                metadata[i] = name_of_functions[list_of_functions.index(func)] + f" (degree {p})"
+                metadata[int(i)] = name_of_functions[list_of_functions.index(func)] + f" (degree {p})"
                 non_linear_data[:, i] = func(non_linear_data[:, i], p)
             elif func == nonLinFunc.exp:
                 c = self.rng.uniform(*possible_params[1])
-                metadata[i] = name_of_functions[list_of_functions.index(func)] + f" (coefficient {c})"
+                metadata[int(i)] = name_of_functions[list_of_functions.index(func)] + f" (coefficient {c})"
                 non_linear_data[:, i] = func(non_linear_data[:, i], c)
             elif func == nonLinFunc.log:
                 eps = self.rng.uniform(*possible_params[2])
-                metadata[i] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
+                metadata[int(i)] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
                 non_linear_data[:, i] = func(non_linear_data[:, i], eps)
             elif func == nonLinFunc.smooth_abs:
                 eps = self.rng.uniform(*possible_params[3])
-                metadata[i] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
+                metadata[int(i)] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
                 non_linear_data[:, i] = func(non_linear_data[:, i], eps)
             else:
                 non_linear_data[:, i] = func(non_linear_data[:, i])
 
         return non_linear_data, metadata
+    
+    def getData(self):
+        return self.non_linear_data, self.metadata
+    
+    def getLinearData(self):
+        return self.linear_data
+    
+    def getCovMatrix(self):
+        return self.cov_matrix
+    
+    def getA(self):
+        return self.A
+    
+    def getNFeatures(self):
+        return self.n_features
+    
+    def getNSamples(self):
+        return self.n_samples
+    
+    def getRankA(self):
+        return self.rank_A
+    
+    def getStdA(self):
+        return self.std_A
+    
+    def getRandomSeed(self):
+        return self.random_seed
+    
+    def getNonLinearRatio(self):
+        return self.non_linear_ratio
+    
+    def __str__(self):
+        return (f"DataSim(n_samples={self.n_samples}, n_features={self.n_features}, "
+                f"rank_A={self.rank_A}, std_A={self.std_A}, random_seed={self.random_seed}, "
+                f"non_linear_ratio={self.non_linear_ratio})")
+        
+    def writeToFile(self, filename):
+        """ Write the non-linear data and metadata to a file.
+        Args:
+            filename (str): The name of the file to write to.
+        """
+        # Save non-linear data to CSV
+        np.savetxt(f"{filename}.csv", self.non_linear_data, delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.n_features)]), comments="")
+        
+        # Save metadata to TXT
+        with open(f"{filename}_metadata.txt", "w") as metafile:
+            metafile.write("Name: "+ self.__str__() + "\n")
+            metafile.write(f"seed: {self.random_seed}\n")
+            metafile.write(f"cov_matrix:\n")
+            for row in self.cov_matrix:
+                metafile.write(", ".join(f"{val:.4f}" for val in row) + "\n")
+            metafile.write(f"rank_A: {self.rank_A}\n")
+            for key, value in self.metadata.items():
+                metafile.write(f"Feature {key}: {value}\n")
+                

@@ -20,13 +20,14 @@ def exp(x: np.ndarray, c: float) -> np.ndarray:
     return np.exp(c * x)
 
 def log(x: np.ndarray, eps: float) -> np.ndarray:
-    """Compute the natural logarithm of (x + eps) for each element in x.
+    
+    """Compute the natural logarithm of (x**2 + eps) for each element in x.
     """
     if not isinstance(eps, (int, float)) or eps <= 0 or eps > 1:
         raise ValueError("Epsilon must be a positive float or integer and within the range (0, 1].")
     if not isinstance(x, np.ndarray):
         raise ValueError("Input x must be a numpy ndarray.")
-    return np.log(x + eps)
+    return np.log(x**2 + eps)
 
 def smooth_abs(x: np.ndarray, eps: float) -> np.ndarray:
     """Compute the smoothed absolute value of x using the given epsilon.
