@@ -43,10 +43,7 @@ class VAE(nn.Module):
         architecture = [self.first_hid_dim // (2**i) for i in range(steps + 1)]
         dens_architecture = [item for item in architecture for _ in range(density)]
         dens_architecture = [int(dim) for dim in dens_architecture]
-        print(dens_architecture)
-        
         dens_architecture_complete = [input_dim] + dens_architecture + [2*latent_dim]
-        print(f"Complete architecture: {dens_architecture_complete}")
         encoder = []
         for i in range(len(dens_architecture_complete) - 1):
             encoder.append(nn.Linear(dens_architecture_complete[i], dens_architecture_complete[i + 1]))

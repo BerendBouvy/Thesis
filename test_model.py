@@ -1,6 +1,5 @@
 import torch
-import tqdm
-
+from tqdm import tqdm
 
 def test(model, dataloader, cur_step, device, writer=None):
     """
