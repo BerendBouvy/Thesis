@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from dataclasses import dataclass
+import numpy as np
 
 @dataclass
 class VAEOutput:
@@ -29,42 +30,42 @@ class VAE(nn.Module):
     
     Args:
         input_dim (int): Dimensionality of the input data.
-        hidden_dim (int): Dimensionality of the hidden layer.
         latent_dim (int): Dimensionality of the latent space.
+        density (int): Density multiplier for hidden layers.
     """
     
-    def __init__(self, input_dim, hidden_dim, latent_dim, n_layers):
+    def __init__(self, input_dim, latent_dim, density: int=1):
         super(VAE, self).__init__()
         
-        # Assert that hidden_dim is large enough for the number of layers
-        min_hidden_dim = hidden_dim // (2 ** (n_layers - 1))
-        assert min_hidden_dim > 0, "hidden_dim is too small for the given n_layers; it must remain positive after halving."
+        self.smallest_hid_dim = 2**np.ceil(np.log2(latent_dim))  # Ensure the smallest hidden dimension is a power of 2.
+        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.ceil(np.log2(input_dim)))  # Ensure the first hidden dimension is at least as large as input_dim.
+        steps = int(np.log2(self.first_hid_dim / self.smallest_hid_dim))
+        architecture = [self.first_hid_dim // (2**i) for i in range(steps + 1)]
+        dens_architecture = [item for item in architecture for _ in range(density)]
+        dens_architecture = [int(dim) for dim in dens_architecture]
+        print(dens_architecture)
         
+        dens_architecture_complete = [input_dim] + dens_architecture + [2*latent_dim]
+        print(f"Complete architecture: {dens_architecture_complete}")
         encoder = []
-        encoder.append(nn.Linear(input_dim, hidden_dim))
-        encoder.append(nn.SiLU())  # Swish activation function
-        
-        for _ in range(n_layers - 1):
-            encoder.append(nn.Linear(hidden_dim, hidden_dim // 2))
+        for i in range(len(dens_architecture_complete) - 1):
+            encoder.append(nn.Linear(dens_architecture_complete[i], dens_architecture_complete[i + 1]))
             encoder.append(nn.SiLU())
-            hidden_dim //= 2
-            
-        encoder.append(nn.Linear(hidden_dim, 2 * latent_dim))  # 2 for mean and variance.
+
             
         self.encoder = nn.Sequential(*encoder)
         
         self.softplus = nn.Softplus()
         
         decoder = []
-        decoder.append(nn.Linear(latent_dim, hidden_dim))
-        
-        for _ in range(n_layers - 1):
-            decoder.append(nn.Linear(hidden_dim, hidden_dim * 2))
+        reversed_architecture = dens_architecture_complete[::-1]
+        reversed_architecture[0] = latent_dim  # The first layer of the decoder should match the latent dimension.
+        for i in range(len(reversed_architecture) - 2):
+            decoder.append(nn.Linear(reversed_architecture[i], reversed_architecture[i + 1]))
             decoder.append(nn.SiLU())
-            hidden_dim *= 2
             
-        decoder.append(nn.Linear(hidden_dim, input_dim))
-        decoder.append(nn.Sigmoid())
+        decoder.append(nn.Linear(reversed_architecture[-2], reversed_architecture[-1]))
+        
         self.decoder = nn.Sequential(*decoder)
 
     def encode(self, x, eps: float = 1e-8):      
