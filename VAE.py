@@ -76,8 +76,8 @@ class VAE(nn.Module):
         Returns:
             torch.distributions.MultivariateNormal: Normal distribution of the encoded data.
         """
-        x = self.encoder(x)
-        mu, logvar = torch.chunk(x, 2, dim=-1)
+        x_encoded = self.encoder(x)
+        mu, logvar = torch.chunk(x_encoded, 2, dim=-1)
         scale = self.softplus(logvar) + eps
         scale_tril = torch.diag_embed(scale)
         

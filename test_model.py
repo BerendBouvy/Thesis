@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 
-def test(model, dataloader, cur_step, device, writer=None):
+def test(model, dataloader, cur_step, device, latent_dim, writer=None):
     """
     Tests the model on the given data.
     
@@ -19,7 +19,7 @@ def test(model, dataloader, cur_step, device, writer=None):
     with torch.no_grad():
         for data in tqdm(dataloader, desc='Testing'):
             data = data.to(device)
-            data = data.view(data.size(0), -1)  # Flatten the data
+            # data = data.view(data.size(0), -1)  # Flatten the data
             
             output = model(data, compute_loss=True)  # Forward pass
             
@@ -37,11 +37,3 @@ def test(model, dataloader, cur_step, device, writer=None):
         writer.add_scalar('Loss/Test/BCE', output.loss_recon.item(), global_step=cur_step)
         writer.add_scalar('Loss/Test/KLD', output.loss_kl.item(), global_step=cur_step)
         
-        # Log reconstructions
-        writer.add_images('Test/Reconstructions', output.x_recon.view(-1, 1, 28, 28), global_step=cur_step)
-        writer.add_images('Test/Originals', data.view(-1, 1, 28, 28), global_step=cur_step)
-        
-        # Log random samples from the latent space
-        z = torch.randn(16, latent_dim).to(device)
-        samples = model.decode(z)
-        writer.add_images('Test/Samples', samples.view(-1, 1, 28, 28), global_step=cur_step)

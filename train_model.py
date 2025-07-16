@@ -8,10 +8,11 @@ from dataLoader import data_loader
 from train import train
 from test_model import test
 
+
 def train_model():
 
     # Load the dataset
-    train_loader, val_loader, test_loader = data_loader(batch_size=64)
+    train_loader, val_loader, test_loader, scaler = data_loader(batch_size=64)
 
     learning_rate = 1e-3
     weight_decay = 1e-2
@@ -27,7 +28,7 @@ def train_model():
     for epoch in range(num_epochs):
         print(f'Epoch {epoch+1}/{num_epochs}')
         prev_updates = train(model, train_loader, optimizer, prev_updates, writer=writer, device=device, batch_size=64)
-        test(model, test_loader, prev_updates, writer=writer, device=device)
+        test(model, test_loader, prev_updates, writer=writer, device=device, latent_dim=latent_dim)
 
 if __name__ == "__main__":
     train_model()
