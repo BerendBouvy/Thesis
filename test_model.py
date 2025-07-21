@@ -30,10 +30,10 @@ def test(model, dataloader, cur_step, device, latent_dim, writer=None):
     test_loss /= len(dataloader)
     test_recon_loss /= len(dataloader)
     test_kl_loss /= len(dataloader)
-    print(f'====> Test set loss: {test_loss:.4f} (BCE: {test_recon_loss:.4f}, KLD: {test_kl_loss:.4f})')
+    print(f'====> Test set loss: {test_loss:.4f} (MSE: {test_recon_loss:.4f}, KLD: {test_kl_loss:.4f})')
     
     if writer is not None:
         writer.add_scalar('Loss/Test', test_loss, global_step=cur_step)
-        writer.add_scalar('Loss/Test/BCE', output.loss_recon.item(), global_step=cur_step)
+        writer.add_scalar('Loss/Test/MSE', output.loss_recon.item(), global_step=cur_step)
         writer.add_scalar('Loss/Test/KLD', output.loss_kl.item(), global_step=cur_step)
         

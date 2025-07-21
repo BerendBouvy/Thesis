@@ -24,5 +24,6 @@ def create_data(n_sets, n_samples=100, n_features=10, rank_A=9, std_A=1, non_lin
 
 if __name__ == "__main__":
     # create_data(n_sets=25, n_samples=100, n_features=10, rank_A=9, std_A=1, non_linear_ratio=0.5)
-    create_data(n_sets=25, n_samples=10000, n_features=50, rank_A=25, std_A=1, non_linear_ratio=0.25)
+    # create_data(n_sets=25, n_samples=10000, n_features=50, rank_A=25, std_A=1, non_linear_ratio=0.25)
+    create_data(n_sets=25, n_samples=10000, n_features=50, rank_A=20, std_A=1, non_linear_ratio=0)
     print("Data sets created successfully.")

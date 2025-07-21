@@ -12,6 +12,7 @@ def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer
         loss_fn: The loss function.
         optimizer: The optimizer.
     """
+        
     model.train()  # Set the model to training mode
     
     for batch_idx, data in enumerate(tqdm(dataloader)):
@@ -40,9 +41,9 @@ def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer
             if writer is not None:
                 global_step = n_upd
                 writer.add_scalar('Loss/Train', loss.item(), global_step)
-                writer.add_scalar('Loss/Train/BCE', output.loss_recon.item(), global_step)
+                writer.add_scalar('Loss/Train/recon', output.loss_recon.item(), global_step)
                 writer.add_scalar('Loss/Train/KLD', output.loss_kl.item(), global_step)
-                writer.add_scalar('GradNorm/Train', total_norm, global_step)
+                # writer.add_scalar('GradNorm/Train', total_norm, global_step)
             
         # gradient clipping
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)    
