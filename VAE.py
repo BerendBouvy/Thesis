@@ -1,3 +1,4 @@
+from sklearn.preprocessing import scale
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -40,7 +41,7 @@ class VAE(nn.Module):
         self.beta = beta
         
         self.smallest_hid_dim = 2**np.ceil(np.log2(latent_dim))  # Ensure the smallest hidden dimension is a power of 2.
-        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.ceil(np.log2(input_dim)))  # Ensure the first hidden dimension is at least as large as input_dim.
+        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.ceil(np.log2(input_dim))) / 2
         steps = int(np.log2(self.first_hid_dim / self.smallest_hid_dim))
         architecture = [self.first_hid_dim // (2**i) for i in range(steps + 1)]
         dens_architecture = [item for item in architecture for _ in range(density)]
@@ -80,9 +81,11 @@ class VAE(nn.Module):
         """
         x_encoded = self.encoder(x)
         mu, logvar = torch.chunk(x_encoded, 2, dim=-1)
-        scale = self.softplus(logvar) + eps
+        # scale = self.softplus(logvar) + eps
+        # scale_tril = torch.diag_embed(scale)
+        scale = torch.exp(0.5 * logvar) + eps
         scale_tril = torch.diag_embed(scale)
-        
+
         return torch.distributions.MultivariateNormal(mu, scale_tril=scale_tril)
         
     def reparameterize(self, dist):
