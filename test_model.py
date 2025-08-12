@@ -18,7 +18,7 @@ def test(model, dataloader, cur_step, device, latent_dim, writer=None):
     
     with torch.no_grad():
         for data in tqdm(dataloader, desc='Testing'):
-            data = data.to(device)
+            data = data[0].to(device)
             # data = data.view(data.size(0), -1)  # Flatten the data
             
             output = model(data, compute_loss=True)  # Forward pass

@@ -4,11 +4,14 @@ import numpy as np
 def polynomial(x: np.ndarray, p: int) -> np.ndarray:
     """Compute the polynomial of degree p for each element in x.
     """
+
+
     # if not isinstance(p, int) or p < 0 or p > 5:
     #     raise ValueError("Degree p must be a non-negative integer and less than or equal to 5.")
     # if not isinstance(x, np.ndarray):
     #     raise ValueError("Input x must be a numpy ndarray.")
-    return x**p
+    
+    return np.power(x, p)
 
 def exp(x: np.ndarray, c: float) -> np.ndarray:
     """Compute the exponential function e^(c * x) for each element in x.

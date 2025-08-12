@@ -4,7 +4,7 @@ import csv
 
 
 class DataSim:
-    def __init__(self, n_samples=100, n_features=1, rank_A=1, std_A=1, random_seed=47, non_linear_ratio=0.5):
+    def __init__(self, n_samples=100, latent_dim=1, high_dim=1, std_A=1, random_seed=47, non_linear_ratio=0.5):
         """ Initialize the DataSim object.
         Args:
             n_samples (int): Number of samples to generate.
@@ -15,37 +15,35 @@ class DataSim:
         self.random_seed = random_seed
         self.rng = np.random.default_rng(self.random_seed)
         self.n_samples = n_samples
-        self.n_features = n_features
-        self.rank_A = rank_A
+        self.latent_dim = latent_dim
+        self.high_dim = high_dim
         self.std_A = std_A
         self.non_linear_ratio = non_linear_ratio
+        self.latent_x, self.beta, self.epsilon, self.y = self.latentModel()
         self.A = self.createA()
-        self.cov_matrix = self.A @ self.A.T
-        self.linear_data = self.createLinearData()
+        self.hd_x = self.latent_x @ self.A
         self.non_linear_data, self.metadata = self.createNonLinearData()
 
-    def createA(self):
-        """ Create a random matrix A with specified standard deviation.
-        Args:
-            n_features (int): Number of features (rows and columns of A).
-            random_state (int): Seed for reproducibility.
-            std_A (float): Standard deviation of the entries in A.
-        Returns:
-            np.ndarray: Random matrix A of shape (n_features, n_features).
-        """
-        return self.rng.normal(size=(self.n_features, self.rank_A), scale=self.std_A)
+    def latentModel(self):
+        latent_x = self.rng.normal(size=(self.n_samples, self.latent_dim), scale=1)
+        beta = self.rng.normal(size=(self.latent_dim, 1), scale=1)
+        epsilon = self.rng.normal(size=(self.n_samples, 1), scale=1)
+        y = latent_x @ beta + epsilon
+        return latent_x, beta, epsilon, y
 
-    def createLinearData(self):
-        """ Create linear data based on the random matrix A.
-        Args:
-            n_samples (int): Number of samples to generate.
-            n_features (int): Number of features (rows and columns of A).
-            std_A (float): Standard deviation of the entries in A.
-            random_state (int): Seed for reproducibility.
-        Returns:
-            np.ndarray: Linear data of shape (n_samples, n_features).
+    def createA(self):
         """
-        return self.rng.multivariate_normal(mean=np.zeros(self.n_features), cov=self.cov_matrix, size=self.n_samples)
+        Generates a random matrix A with normally distributed entries.
+        Returns:
+            numpy.ndarray: A matrix of shape (latent_dim, high_dim) where each entry is drawn 
+            from a normal distribution with standard deviation `std_A`.
+        Notes:
+            - `self.rng` should be a NumPy random generator instance.
+            - `self.latent_dim` and `self.high_dim` specify the dimensions of the matrix.
+            - `self.std_A` specifies the standard deviation of the normal distribution.
+        """
+        
+        return self.rng.normal(size=(self.latent_dim, self.high_dim), scale=self.std_A)
     
     def createNonLinearData(self):
         
@@ -81,9 +79,9 @@ class DataSim:
             None,  # sin has no parameters
             None   # cos has no parameters
         ]
-        num_non_linear = int(self.n_features * self.non_linear_ratio)
-        non_linear_indices = self.rng.choice(self.n_features, num_non_linear, replace=False)
-        non_linear_data = np.copy(self.linear_data)
+        num_non_linear = int(self.latent_dim * self.non_linear_ratio)
+        non_linear_indices = self.rng.choice(self.latent_dim, num_non_linear, replace=False)
+        non_linear_data = np.copy(self.hd_x)
         for i in non_linear_indices:
             func = self.rng.choice(list_of_functions)
             if func == nonLinFunc.polynomial:
@@ -110,23 +108,17 @@ class DataSim:
     def getData(self):
         return self.non_linear_data, self.metadata
     
-    def getLinearData(self):
-        return self.linear_data
-    
-    def getCovMatrix(self):
-        return self.cov_matrix
-    
     def getA(self):
         return self.A
     
     def getNFeatures(self):
-        return self.n_features
+        return self.latent_dim
     
     def getNSamples(self):
         return self.n_samples
     
     def getRankA(self):
-        return self.rank_A
+        return self.high_dim
     
     def getStdA(self):
         return self.std_A
@@ -138,8 +130,8 @@ class DataSim:
         return self.non_linear_ratio
     
     def __str__(self):
-        return (f"DataSim(n_samples={self.n_samples}, n_features={self.n_features}, "
-                f"rank_A={self.rank_A}, std_A={self.std_A}, random_seed={self.random_seed}, "
+        return (f"DataSim(n_samples={self.n_samples}, latent_dim={self.latent_dim}, "
+                f"high_dim={self.high_dim}, std_A={self.std_A}, random_seed={self.random_seed}, "
                 f"non_linear_ratio={self.non_linear_ratio})")
         
     def writeToFile(self, filename):
@@ -148,16 +140,17 @@ class DataSim:
             filename (str): The name of the file to write to.
         """
         # Save non-linear data to CSV
-        np.savetxt(f"{filename}.csv", self.non_linear_data, delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.n_features)]), comments="")
-        
+        np.savetxt(f"{filename}.csv", np.column_stack((self.non_linear_data, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]) + ",Target", comments="")
+        np.savetxt(f"{filename}_latent.csv", np.column_stack((self.latent_x, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Latent Feature {i}" for i in range(self.latent_dim)]) + ",Target", comments="")
         # Save metadata to TXT
         with open(f"{filename}_metadata.txt", "w") as metafile:
             metafile.write("Name: "+ self.__str__() + "\n")
             metafile.write(f"seed: {self.random_seed}\n")
-            metafile.write(f"cov_matrix:\n")
-            for row in self.cov_matrix:
-                metafile.write(", ".join(f"{val:.4f}" for val in row) + "\n")
-            metafile.write(f"rank_A: {self.rank_A}\n")
+            metafile.write("Beta:\n")
+            np.savetxt(metafile, self.beta.T, delimiter=",", fmt="%.6f", comments="")
+            metafile.write("Metadata:\n")
             for key, value in self.metadata.items():
-                metafile.write(f"Feature {key}: {value}\n")
-                
+                metafile.write(f"{key}: {value}\n")
+        
+        np.savetxt(f"{filename}_A.csv", self.A, delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]), comments="")
+            

@@ -18,7 +18,7 @@ def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer
     for batch_idx, data in enumerate(tqdm(dataloader)):
         n_upd = prev_updates + batch_idx
         
-        data = data.to(device)
+        data = data[0].to(device)
         
         optimizer.zero_grad()  # Zero the gradients
         

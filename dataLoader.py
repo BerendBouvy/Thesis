@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
@@ -6,19 +7,25 @@ from sklearn.model_selection import train_test_split
 
 # Custom Dataset class
 class CSVDataset(Dataset):
-    def __init__(self, csv_file):
+    def __init__(self, csv_file, target=True):
         df = pd.read_csv(csv_file)
-        self.X = torch.tensor(df.iloc[:, :].values, dtype=torch.float32) 
-        
+        if target:
+            self.X = torch.tensor(df.iloc[:, :-1].astype(np.float32).values, dtype=torch.float32)
+            self.y = torch.tensor(df.iloc[:, -1].astype(np.float32).values, dtype=torch.float32)
+        else:
+            self.X = torch.tensor(df.iloc[:, :].values, dtype=torch.float32)
+            self.y = None
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
+        if self.y is not None:
+            return self.X[idx], self.y[idx]
         return self.X[idx]
 
-def data_loader(path, batch_size=64):
-    full_dataset = CSVDataset(path)
+def data_loader(path, batch_size=64, target=True):
+    full_dataset = CSVDataset(path, target=target)
 
     N = len(full_dataset)
     train_size = int(0.8 * N)
