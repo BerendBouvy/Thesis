@@ -39,18 +39,14 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         
         self.beta = beta
+        self.latent_dim = latent_dim
         
-        self.smallest_hid_dim = 2**np.ceil(np.log2(latent_dim))  # Ensure the smallest hidden dimension is a power of 2.
-        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.floor(np.log2(input_dim)))
-        steps = int(np.log2(self.first_hid_dim / self.smallest_hid_dim))
-        architecture = [self.first_hid_dim // (2**i) for i in range(steps + 1)]
-        dens_architecture = [item for item in architecture for _ in range(density)]
-        dens_architecture = [int(dim) for dim in dens_architecture]
-        dens_architecture_complete = [input_dim] + dens_architecture + [2*latent_dim]
+        
         encoder = []
-        for i in range(len(dens_architecture_complete) - 1):
-            encoder.append(nn.Linear(dens_architecture_complete[i], dens_architecture_complete[i + 1]))
-            encoder.append(nn.SiLU())
+        
+        encoder.append(nn.Linear(input_dim, 10))
+        encoder.append(nn.SiLU())
+        encoder.append(nn.Linear(10, 2 * latent_dim))
 
             
         self.encoder = nn.Sequential(*encoder)
@@ -58,13 +54,9 @@ class VAE(nn.Module):
         self.softplus = nn.Softplus()
         
         decoder = []
-        reversed_architecture = dens_architecture_complete[::-1]
-        reversed_architecture[0] = latent_dim  # The first layer of the decoder should match the latent dimension.
-        for i in range(len(reversed_architecture) - 2):
-            decoder.append(nn.Linear(reversed_architecture[i], reversed_architecture[i + 1]))
-            decoder.append(nn.SiLU())
-            
-        decoder.append(nn.Linear(reversed_architecture[-2], reversed_architecture[-1]))
+        decoder.append(nn.Linear(latent_dim, 10))
+        decoder.append(nn.SiLU())
+        decoder.append(nn.Linear(10, input_dim))
         
         self.decoder = nn.Sequential(*decoder)
 
@@ -145,7 +137,7 @@ class VAE(nn.Module):
         )
         loss_kl = torch.distributions.kl.kl_divergence(dist, std_normal).mean()
 
-        loss = loss_recon + self.beta * loss_kl
+        loss = loss_recon + self.beta * loss_kl / self.latent_dim
 
         return VAEOutput(
             z_dist=dist,
@@ -153,7 +145,7 @@ class VAE(nn.Module):
             x_recon=recon_x,
             loss=loss,
             loss_recon=loss_recon,
-            loss_kl=self.beta * loss_kl,
+            loss_kl=self.beta * loss_kl / self.latent_dim,
         )
         
     def set_beta(self, beta: float):

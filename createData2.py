@@ -21,6 +21,7 @@ def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, std_A=1, non_l
 
         sim = DataSim(n_samples=n_samples, latent_dim=latent_dim, high_dim=high_dim, std_A=std_A, random_seed=random_seed, non_linear_ratio=non_linear_ratio)
         sim.writeToFile(f"{folder_name}/set_{i+1}/data")
+        random_seed += 1  # Increment the random seed for the next set
 
             
 if __name__ == "__main__":
@@ -29,5 +30,6 @@ if __name__ == "__main__":
     # create_data(n_sets=25, n_samples=10000, n_features=50, rank_A=20, std_A=1, non_linear_ratio=0)
     # create_data(n_sets=1, n_samples=50000, n_features=100, rank_A=50, std_A=1, non_linear_ratio=0, target=True)
     # create_data(n_sets=1, n_samples=50000, high_dim=100, latent_dim=50, std_A=1, non_linear_ratio=0.25, target=True)
-    create_data(n_sets=25, n_samples=50000, high_dim=100, latent_dim=20, std_A=1, non_linear_ratio=0.25)
+    # create_data(n_sets=25, n_samples=50000, high_dim=100, latent_dim=20, std_A=1, non_linear_ratio=0.25)
+    create_data(n_sets=5, n_samples=10000, high_dim=100, latent_dim=20, std_A=1, non_linear_ratio=.5)
     print("Data sets created successfully.")

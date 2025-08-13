@@ -1,5 +1,6 @@
 import numpy as np
 import nonLinFunc
+import nonLinCross
 import csv
 
 
@@ -20,9 +21,11 @@ class DataSim:
         self.std_A = std_A
         self.non_linear_ratio = non_linear_ratio
         self.latent_x, self.beta, self.epsilon, self.y = self.latentModel()
+        self.sparsity = .5
         self.A = self.createA()
         self.hd_x = self.latent_x @ self.A
-        self.non_linear_data, self.metadata = self.createNonLinearData()
+        self.non_linear_data, self.metadata, self.non_linear_indices = self.createNonLinearData()
+        self.non_linear_data_cross, self.non_linear_indices_cross = self.cross()
 
     def latentModel(self):
         latent_x = self.rng.normal(size=(self.n_samples, self.latent_dim), scale=1)
@@ -42,9 +45,13 @@ class DataSim:
             - `self.latent_dim` and `self.high_dim` specify the dimensions of the matrix.
             - `self.std_A` specifies the standard deviation of the normal distribution.
         """
-        
-        return self.rng.normal(size=(self.latent_dim, self.high_dim), scale=self.std_A)
-    
+        full_A = self.rng.normal(size=(self.latent_dim, self.high_dim), scale=self.std_A)
+        sparce_A = np.copy(full_A)
+        # Set some entries to zero based on sparsity
+        mask = self.rng.uniform(size=full_A.shape) > self.sparsity
+        sparce_A[mask] = 0
+        return sparce_A
+
     def createNonLinearData(self):
         
         metadata = {}
@@ -70,7 +77,7 @@ class DataSim:
             "cos"
         ]
         possible_params = [
-            (1, 5),  # polynomial degree
+            (2, 5),  # polynomial degree
             (-2, 2),  # exp coefficient
             (0.01, 1),  # log epsilon
             (0.01, 1),  # smooth_abs epsilon
@@ -79,10 +86,12 @@ class DataSim:
             None,  # sin has no parameters
             None   # cos has no parameters
         ]
-        num_non_linear = int(self.latent_dim * self.non_linear_ratio)
-        non_linear_indices = self.rng.choice(self.latent_dim, num_non_linear, replace=False)
+        num_non_linear = int(self.high_dim * self.non_linear_ratio/2)
+        non_linear_indices = self.rng.choice(self.high_dim, num_non_linear, replace=False)
         non_linear_data = np.copy(self.hd_x)
         for i in non_linear_indices:
+            # Normalize the data before applying non-linear functions
+            non_linear_data[:, i] = (non_linear_data[:, i]  - np.mean(non_linear_data[:, i])) / np.std(non_linear_data[:, i])
             func = self.rng.choice(list_of_functions)
             if func == nonLinFunc.polynomial:
                 p = self.rng.integers(*possible_params[0])
@@ -101,10 +110,109 @@ class DataSim:
                 metadata[int(i)] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
                 non_linear_data[:, i] = func(non_linear_data[:, i], eps)
             else:
+                metadata[int(i)] = name_of_functions[list_of_functions.index(func)]
                 non_linear_data[:, i] = func(non_linear_data[:, i])
+                
 
-        return non_linear_data, metadata
+        return non_linear_data, metadata, non_linear_indices
     
+    def cross(self):
+        # select non-linear features for cross
+        all_indices = np.arange(self.high_dim)
+        still_linear_indices = np.setdiff1d(all_indices, self.non_linear_indices)
+        indices_cross = self.rng.choice(still_linear_indices, len(self.non_linear_indices)*2, replace=False)
+        #reshape to form pairs
+        indices_cross = indices_cross.reshape(-1, 2)
+        non_linear_data_cross = np.copy(self.non_linear_data)
+        list_of_functions = [
+            nonLinCross.polynomialprod,
+            nonLinCross.polynomialsum,
+            nonLinCross.exp,
+            nonLinCross.log,
+            nonLinCross.ratio1,
+            nonLinCross.ratio2,
+            nonLinCross.sin1,
+            nonLinCross.sin2
+        ]
+        name_of_functions = [
+            "polynomialprod",
+            "polynomialsum",
+            "exp",
+            "log",
+            "ratio1",
+            "ratio2",
+            "sin1",
+            "sin2"
+        ]
+        possible_params = [
+            (1, 4),  # polynomial degree for x and y
+            (1, 4),  # polynomial degree for x and y
+            (-2, 2),  # exp coefficient
+            (0.01, 1),  # log epsilon
+            (0.01, 1),  # ratio1 epsilon
+            (0.01, 1),  # ratio2 epsilon
+            None,  # sin1 has no parameters
+            None   # sin2 has no parameters
+        ]
+        non_linear_data_cross = np.copy(self.non_linear_data)
+        for i, (idx1, idx2) in enumerate(indices_cross):
+            func = self.rng.choice(list_of_functions)
+            if func == nonLinCross.polynomialprod:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                p1, p2 = self.rng.integers(*possible_params[0]), self.rng.integers(*possible_params[0])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (degree {p1}, {p2})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], p1, p2)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.polynomialsum:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                p1, p2 = self.rng.integers(*possible_params[1]), self.rng.integers(*possible_params[1])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (degree {p1}, {p2})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], p1, p2)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.exp:
+                c = self.rng.uniform(*possible_params[2])
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (coefficient {c})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], c)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.log:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                eps = self.rng.uniform(*possible_params[3])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], eps)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.ratio1:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                eps = self.rng.uniform(*possible_params[4])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], eps)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.ratio2:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                eps = self.rng.uniform(*possible_params[5])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)] + f" (epsilon {eps})"
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2], eps)
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.sin1:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])    
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)]
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2])
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+            elif func == nonLinCross.sin2:
+                non_linear_data_cross[:, idx1] = (non_linear_data_cross[:, idx1] - np.mean(non_linear_data_cross[:, idx1])) / np.std(non_linear_data_cross[:, idx1])
+                non_linear_data_cross[:, idx2] = (non_linear_data_cross[:, idx2] - np.mean(non_linear_data_cross[:, idx2])) / np.std(non_linear_data_cross[:, idx2])
+                self.metadata[f"{idx1}_{idx2}"] = name_of_functions[list_of_functions.index(func)]
+                non_linear_data_cross[:, idx1] = func(non_linear_data_cross[:, idx1], non_linear_data_cross[:, idx2])
+                non_linear_data_cross[:, idx2] = self.rng.normal(0, 1, size=non_linear_data_cross[:, idx2].shape)
+        return non_linear_data_cross, indices_cross
+
     def getData(self):
         return self.non_linear_data, self.metadata
     
@@ -140,7 +248,7 @@ class DataSim:
             filename (str): The name of the file to write to.
         """
         # Save non-linear data to CSV
-        np.savetxt(f"{filename}.csv", np.column_stack((self.non_linear_data, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]) + ",Target", comments="")
+        np.savetxt(f"{filename}.csv", np.column_stack((self.non_linear_data_cross, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]) + ",Target", comments="")
         np.savetxt(f"{filename}_latent.csv", np.column_stack((self.latent_x, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Latent Feature {i}" for i in range(self.latent_dim)]) + ",Target", comments="")
         # Save metadata to TXT
         with open(f"{filename}_metadata.txt", "w") as metafile:

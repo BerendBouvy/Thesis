@@ -41,7 +41,7 @@ class VAE(nn.Module):
         self.beta = beta
         
         self.smallest_hid_dim = 2**np.ceil(np.log2(latent_dim))  # Ensure the smallest hidden dimension is a power of 2.
-        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.floor(np.log2(input_dim)))
+        self.first_hid_dim = max(self.smallest_hid_dim, 2**np.floor(np.log2(input_dim))) / 2
         steps = int(np.log2(self.first_hid_dim / self.smallest_hid_dim))
         architecture = [self.first_hid_dim // (2**i) for i in range(steps + 1)]
         dens_architecture = [item for item in architecture for _ in range(density)]

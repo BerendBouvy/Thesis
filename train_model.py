@@ -1,10 +1,13 @@
 from csv import writer
 from datetime import datetime
 from modulefinder import test
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
+# from VAE import VAE, VAEOutput
 # from VAE2 import VAE, VAEOutput
-from VAE import VAE, VAEOutput
+# from VAE3 import VAE, VAEOutput
+from VAE4 import VAE, VAEOutput
 from dataLoader import data_loader
 from train import train
 from test_model import test
@@ -14,7 +17,7 @@ import os
 
 
 
-def train_model(source: str, paths: list[str], learning_rate: float, weight_decay: float, num_epochs: int, latent_dim: int, density: int, beta: float, target: bool, batch_size: int, writer: SummaryWriter = None):
+def train_model(source: str, paths: list[str], learning_rate: float, weight_decay: float, num_epochs: int, latent_dim: int, density: int, beta, target: bool, batch_size: int, writer: SummaryWriter = None):
     """    Train the VAE model on the given dataset.
     Args:
         source (str): Path to the dataset directory.
@@ -27,6 +30,9 @@ def train_model(source: str, paths: list[str], learning_rate: float, weight_deca
         scaler (Normalizer): Normalizer used for scaling the dataset.
         dataloaders (list[DataLoader]): List of DataLoaders for training, validation, and testing.
     """
+    if type(beta) is float:
+        beta = [beta] * num_epochs
+        
     output = {}
     for path in paths:
         
@@ -41,7 +47,8 @@ def train_model(source: str, paths: list[str], learning_rate: float, weight_deca
         
         prev_updates = 0
         for epoch in range(num_epochs):
-            print(f'Epoch {epoch+1}/{num_epochs}')
+            model.set_beta(beta[epoch])
+            print(f'Epoch {epoch+1}/{num_epochs}, beta: {model.beta}')
             prev_updates = train(model, train_loader, optimizer, prev_updates, writer=writer, device=device, batch_size=batch_size)
             test(model, test_loader, prev_updates, writer=writer, device=device, latent_dim=latent_dim)
         output[path] = {
