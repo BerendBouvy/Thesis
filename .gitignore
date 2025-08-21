@@ -1,6 +1,5 @@
 /.venv
-/data
+/data*
 /figures
 /runs
-/data2
 /__pycache__

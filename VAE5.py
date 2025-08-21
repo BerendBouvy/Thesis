@@ -18,7 +18,7 @@ class VAEOutput:
         loss_recon (torch.Tensor): Reconstruction loss.
         loss_kl (torch.Tensor): KL divergence loss.
     """
-    z_dist: torch.distributions.MultivariateNormal
+    # z_dist: torch.distributions.MultivariateNormal
     z_sample: torch.Tensor
     x_recon: torch.Tensor
     loss: torch.Tensor
@@ -40,7 +40,7 @@ class VAE(nn.Module):
         
         self.beta = beta
         self.latent_dim = latent_dim
-        self.hidden_layer_size = 100
+        self.hidden_layer_size = 50
         
         encoder = []
 
@@ -49,7 +49,7 @@ class VAE(nn.Module):
         for _ in range(density):
             encoder.append(nn.Linear(self.hidden_layer_size, self.hidden_layer_size))
             encoder.append(nn.SiLU())
-        encoder.append(nn.Linear(self.hidden_layer_size, 2 * latent_dim))
+        encoder.append(nn.Linear(self.hidden_layer_size, latent_dim))
 
             
         self.encoder = nn.Sequential(*encoder)
@@ -77,26 +77,10 @@ class VAE(nn.Module):
         Returns:
             torch.distributions.MultivariateNormal: Normal distribution of the encoded data.
         """
-        x_encoded = self.encoder(x)
-        mu, logvar = torch.chunk(x_encoded, 2, dim=-1)
-        # scale = self.softplus(logvar) + eps
-        # scale_tril = torch.diag_embed(scale)
-        scale = torch.exp(0.5 * logvar) + eps
-        scale_tril = torch.diag_embed(scale)
-
-        return torch.distributions.MultivariateNormal(mu, scale_tril=scale_tril)
+        z = self.encoder(x)
+        return z
         
-    def reparameterize(self, dist):
-        """
-        Reparameterizes the encoded data to sample from the latent space.
         
-        Args:
-            dist (torch.distributions.MultivariateNormal): Normal distribution of the encoded data.
-
-        Returns:
-            torch.Tensor: Sampled data from the latent space.
-        """
-        return dist.rsample()
     
     def decode(self, z):
         """
@@ -121,13 +105,11 @@ class VAE(nn.Module):
         Returns:
             VAEOutput: VAE output dataclass.
         """
-        dist = self.encode(x)
-        z = self.reparameterize(dist)
+        z = self.encode(x)
         recon_x = self.decode(z)
-        
+
         if not compute_loss:
             return VAEOutput(
-                z_dist=dist,
                 z_sample=z,
                 x_recon=recon_x,
                 loss=None,
@@ -137,21 +119,16 @@ class VAE(nn.Module):
 
         # compute loss terms
         loss_recon = F.mse_loss(recon_x, x, reduction='mean')
-        std_normal = torch.distributions.MultivariateNormal(
-            torch.zeros_like(z, device=z.device),
-            scale_tril=torch.eye(z.shape[-1], device=z.device).unsqueeze(0).expand(z.shape[0], -1, -1),
-        )
-        loss_kl = torch.distributions.kl.kl_divergence(dist, std_normal).mean()
 
-        loss = loss_recon + self.beta * loss_kl / self.latent_dim
+
+        loss = loss_recon
 
         return VAEOutput(
-            z_dist=dist,
             z_sample=z,
             x_recon=recon_x,
             loss=loss,
             loss_recon=loss_recon,
-            loss_kl=self.beta * loss_kl / self.latent_dim,
+            loss_kl=torch.tensor(0.0)  # KL loss is not computed in this version,
         )
         
     def set_beta(self, beta: float):

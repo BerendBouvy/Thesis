@@ -44,11 +44,25 @@ def train_fa_model(train_loader, n_components=10, n_iter=1000, tol=1e-2):
         data = data[0].numpy()  # Convert to numpy array
         model.fit(data)
         
-
-        
-
-    
     return model
+
+def reconstruction_loss(test_loader, FA_model, VAE_model):
+    test_data_tensor = test_loader.dataset.dataset.X[test_loader.dataset.indices]
+    test_data_np = test_loader.dataset.dataset.X[test_loader.dataset.indices].numpy()
+    FA_latent = FA_model.transform(test_data_np)
+    FA_recon = FA_model.inverse_transform(FA_latent)
+    FA_recon_mse = ((test_data_np - FA_recon) ** 2).mean(axis=0).mean()
+
+    # VAE_recon_mse = 0
+    with torch.no_grad():
+        VAE_output = VAE_model.forward(test_data_tensor, compute_loss=True)
+        VAE_latent = VAE_output.z_sample.numpy()
+        VAE_recon_mse = VAE_output.loss_recon.item()
+        # for data in test_loader:
+        #     out = VAE_model(data[0], compute_loss=True)
+        #     VAE_recon_mse += out.loss_recon.item()
+        # VAE_recon_mse /= len(test_loader)
+    return FA_recon_mse, VAE_recon_mse, FA_latent, VAE_latent   
 
 if __name__ == "__main__":
     # path = 'data/sim_10000_50_25_1_0.25/set_2/data.csv'
@@ -68,16 +82,7 @@ if __name__ == "__main__":
     VAE_model.eval()
     
     # FA MSE
-    val_data = val_loader.dataset.dataset.X[val_loader.dataset.indices].numpy()
-    fa_recon = fa_model.inverse_transform(fa_model.transform(val_data))
-    fa_recon_mse = ((val_data - fa_recon) ** 2).mean(axis=0).mean()
-    
-    VAE_recon_mse = 0
-    with torch.no_grad():
-        for data in val_loader:
-            out = VAE_model(data[0], compute_loss=True)
-            VAE_recon_mse += out.loss_recon.item()
-        VAE_recon_mse /= len(val_loader)
+    fa_recon_mse, VAE_recon_mse = reconstruction_loss(val_loader, fa_model, VAE_model)
     
     print(f'FA Reconstruction MSE: {fa_recon_mse}')
     print(f'VAE Reconstruction MSE: {VAE_recon_mse}')

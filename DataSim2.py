@@ -5,7 +5,7 @@ import csv
 
 
 class DataSim:
-    def __init__(self, n_samples=100, latent_dim=1, high_dim=1, std_A=1, random_seed=47, non_linear_ratio=0.25, cross_ratio=.25, sparsity=1, s2nr=.1):
+    def __init__(self, n_samples=100, latent_dim=1, epsilon_var=1, high_dim=1, std_A=1, random_seed=47, non_linear_ratio=0.25, cross_ratio=.25, sparsity=1, s2nr=.1):
         """ Initialize the DataSim object.
         Args:
             n_samples (int): Number of samples to generate.
@@ -18,6 +18,7 @@ class DataSim:
         self.n_samples = n_samples
         self.latent_dim = latent_dim
         self.high_dim = high_dim
+        self.epsilon_var = epsilon_var
         self.std_A = std_A
         self.non_linear_ratio = non_linear_ratio
         self.cross_ratio = cross_ratio
@@ -40,8 +41,9 @@ class DataSim:
 
     def latentModel(self):
         latent_x = self.rng.normal(size=(self.n_samples, self.latent_dim), scale=1)
-        beta = self.rng.normal(size=(self.latent_dim, 1), scale=1)
-        epsilon = self.rng.normal(size=(self.n_samples, 1), scale=1)
+        latent_x += self.rng.normal(size=latent_x.shape, scale=5)
+        beta = self.rng.normal(size=(self.latent_dim, 1), scale=5)
+        epsilon = self.rng.normal(size=(self.n_samples, 1), scale=self.epsilon_var)
         y = latent_x @ beta + epsilon
         return latent_x, beta, epsilon, y
 
@@ -63,7 +65,7 @@ class DataSim:
         sparce_A = np.copy(full_A)
         # Set some entries to zero based on sparsity
         mask = self.rng.uniform(size=full_A.shape) > self.sparsity
-        sparce_A[mask] = 0
+        sparce_A[mask] = 1e-10
         sparce_A[latent_non_lin_features:, :non_lin_features] = 0  # Ensure non-linear features are not connected to linear features
         sparce_A[:latent_non_lin_features, non_lin_features:] = 0  # Ensure linear features are not connected to non-linear features
         return sparce_A
@@ -74,11 +76,11 @@ class DataSim:
         
         list_of_functions = [
             nonLinFunc.polynomial,
-            nonLinFunc.exp,
+            # nonLinFunc.exp,
             nonLinFunc.log,
-            nonLinFunc.smooth_abs,
-            nonLinFunc.tanh,
-            nonLinFunc.sigmoid,
+            # nonLinFunc.smooth_abs,
+            # nonLinFunc.tanh,
+            # nonLinFunc.sigmoid,
             nonLinFunc.sin,
             nonLinFunc.cos
         ]
@@ -256,17 +258,17 @@ class DataSim:
             filename (str): The name of the file to write to.
         """
         # Save non-linear data to CSV
-        np.savetxt(f"{filename}.csv", np.column_stack((self.non_linear_data_noisy, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]) + ",Target", comments="")
-        np.savetxt(f"{filename}_latent.csv", np.column_stack((self.latent_x, self.y)), delimiter=",", fmt="%.6f", header=",".join([f"Latent Feature {i}" for i in range(self.latent_dim)]) + ",Target", comments="")
+        np.savetxt(f"{filename}.csv", np.column_stack((self.non_linear_data_noisy, self.y)), delimiter=",", fmt="%.12f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]) + ",Target", comments="")
+        np.savetxt(f"{filename}_latent.csv", np.column_stack((self.latent_x, self.y)), delimiter=",", fmt="%.12f", header=",".join([f"Latent Feature {i}" for i in range(self.latent_dim)]) + ",Target", comments="")
         # Save metadata to TXT
         with open(f"{filename}_metadata.txt", "w") as metafile:
             metafile.write("Name: "+ self.__str__() + "\n")
             metafile.write(f"seed: {self.random_seed}\n")
             metafile.write("Beta:\n")
-            np.savetxt(metafile, self.beta.T, delimiter=",", fmt="%.6f", comments="")
+            np.savetxt(metafile, self.beta.T, delimiter=",", fmt="%.12f", comments="")
             metafile.write("Metadata:\n")
             for key, value in self.metadata.items():
                 metafile.write(f"{key}: {value}\n")
         
-        np.savetxt(f"{filename}_A.csv", self.A, delimiter=",", fmt="%.6f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]), comments="")
+        np.savetxt(f"{filename}_A.csv", self.A, delimiter=",", fmt="%.12f", header=",".join([f"Feature {i}" for i in range(self.high_dim)]), comments="")
             

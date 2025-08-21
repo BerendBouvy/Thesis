@@ -2,7 +2,8 @@ from tqdm import tqdm
 import torch
 
 
-def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer=None):
+
+def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer=None, verbose=True):
     """
     Trains the model on the given data.
     
@@ -14,8 +15,8 @@ def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer
     """
         
     model.train()  # Set the model to training mode
-    
-    for batch_idx, data in enumerate(tqdm(dataloader)):
+
+    for batch_idx, data in enumerate(tqdm(dataloader, disable=not verbose)):
         n_upd = prev_updates + batch_idx
         
         data = data[0].to(device)
@@ -35,8 +36,8 @@ def train(model, dataloader, optimizer, prev_updates, device, batch_size, writer
                     param_norm = p.grad.data.norm(2)
                     total_norm += param_norm.item() ** 2
             total_norm = total_norm ** (1. / 2)
-        
-            print(f'Step {n_upd:,} (N samples: {n_upd*batch_size:,}), Loss: {loss.item():.4f} (Recon: {output.loss_recon.item():.4f}, KL: {output.loss_kl.item():.4f}) Grad: {total_norm:.4f}')
+            if verbose:
+                print(f'Step {n_upd:,} (N samples: {n_upd*batch_size:,}), Loss: {loss.item():.4f} (Recon: {output.loss_recon.item():.4f}, KL: {output.loss_kl.item():.4f}) Grad: {total_norm:.4f}')
 
             if writer is not None:
                 global_step = n_upd

@@ -3,9 +3,10 @@ import os
 import numpy as np
 
 
-def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1):
+def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_var=1, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1):
     random_seed = np.random.randint(0, 10000)  # Random seed for reproducibility
-    folder_name = f"data2/sim_{n_samples}_{high_dim}_{latent_dim}_{non_linear_ratio}"
+    next_set = len(os.listdir("data4")) + 1 if os.path.exists("data4") else 1
+    folder_name = f"data4/{next_set}_sim_{n_samples}_{high_dim}_{latent_dim}_{non_linear_ratio}_{cross_ratio}_{sparsity}_{s2nr}"
     if not os.path.exists(folder_name):
         print(f"Creating folder: {folder_name}")
         os.makedirs(folder_name)
@@ -19,9 +20,10 @@ def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, std_A=1, non_l
         else:
             print(f"Set {i+1} already exists in folder: {folder_name}. Skipping creation.")
 
-        sim = DataSim(n_samples=n_samples, latent_dim=latent_dim, high_dim=high_dim, std_A=std_A, random_seed=random_seed, non_linear_ratio=non_linear_ratio, cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr)
+        sim = DataSim(n_samples=n_samples, latent_dim=latent_dim, high_dim=high_dim, epsilon_var=epsilon_var, std_A=std_A, random_seed=random_seed, non_linear_ratio=non_linear_ratio, cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr)
         sim.writeToFile(f"{folder_name}/set_{i+1}/data")
         random_seed += 1  # Increment the random seed for the next set
+    return folder_name
 
             
 if __name__ == "__main__":
@@ -32,6 +34,7 @@ if __name__ == "__main__":
     # create_data(n_sets=1, n_samples=50000, high_dim=100, latent_dim=50, std_A=1, non_linear_ratio=0.25, target=True)
     # create_data(n_sets=25, n_samples=50000, high_dim=100, latent_dim=20, std_A=1, non_linear_ratio=0.25)
     # create_data(n_sets=5, n_samples=10000, high_dim=100, latent_dim=20, std_A=1, non_linear_ratio=0.5, sparsity=1, s2nr=1)
-    create_data(n_sets=5, n_samples=10000, latent_dim=20, high_dim=100, std_A=1, non_linear_ratio=0.4, cross_ratio=.4, sparsity=1, s2nr=.1)
+    # create_data(n_sets=5, n_samples=10000, latent_dim=20, high_dim=100, std_A=1, non_linear_ratio=0.4, cross_ratio=.4, sparsity=1, s2nr=.1)
     # create_data(n_sets=1, n_samples=10000, latent_dim=4, high_dim=12, std_A=1, non_linear_ratio=0.25, cross_ratio=.25, sparsity=1, s2nr=.1)
+    create_data(n_sets=5, n_samples=10000, high_dim=1000, latent_dim=50, std_A=1, non_linear_ratio=0.0, cross_ratio=0.0, sparsity=1, s2nr=0.1)
     print("Data sets created successfully.")

@@ -33,8 +33,8 @@ def data_loader(path, batch_size=64, target=True):
     test_size = N - train_size - val_size
     
     indices = list(range(N))
-    train_indices, temp_indices = train_test_split(indices, train_size=train_size, shuffle=True, random_state=42)
-    val_indices, test_indices = train_test_split(temp_indices, test_size=test_size, shuffle=True, random_state=42)
+    train_indices, temp_indices = train_test_split(indices, train_size=train_size, shuffle=True, random_state=47)
+    val_indices, test_indices = train_test_split(temp_indices, test_size=test_size, shuffle=True, random_state=47)
 
     train_dataset = torch.utils.data.Subset(full_dataset, train_indices)
     val_dataset = torch.utils.data.Subset(full_dataset, val_indices)
@@ -42,7 +42,9 @@ def data_loader(path, batch_size=64, target=True):
 
     # scaler = Normalizer(train_dataset.dataset.X)
     scaler = Normalizer(train_dataset.dataset.X[train_dataset.indices])
-    train_dataset.dataset.X = scaler.normalize(train_dataset.dataset.X)
+    
+    full_dataset.X = scaler.normalize(full_dataset.X)
+
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

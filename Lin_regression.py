@@ -39,3 +39,9 @@ class LinRegression:
             metrics['adjusted_r2'] = 1 - (1 - metrics['r2']) * (len(self.y) - 1) / (len(self.y) - self.X_dict[model].shape[1] - 1)
             scores[model] = metrics
         return scores
+
+    def get_coefficients(self):
+        return self.coefs
+
+    def get_scores(self):
+        return self.scores
