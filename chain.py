@@ -6,16 +6,15 @@ from createData2 import create_data
 from train_model import train_model
 from FA import train_fa_model, reconstruction_loss
 from Lin_regression2 import LinRegression
+import time
 
-def main(n_sets, n_samples, high_dim, latent_dim, epsilon_var, std_A, non_linear_ratio, cross_ratio, 
+def main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear_ratio, cross_ratio, 
             sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
             n_iter, tol):
-    # folder = 'data3/sim_10000_1000_50_0.25_0.25_1_0.1/'
     folder = create_data(n_sets=n_sets, n_samples=n_samples, high_dim=high_dim, 
-                latent_dim=latent_dim, epsilon_var=epsilon_var, std_A=std_A, non_linear_ratio=non_linear_ratio, 
+                latent_dim=latent_dim, epsilon_snr=epsilon_snr, std_A=std_A, non_linear_ratio=non_linear_ratio, 
                 cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr)
     print(f"Data sets created successfully in folder: {folder}")
-    # latent_dim += latent_dim
     data_sets = os.listdir(folder)
     output = train_model(source=folder, paths=data_sets, learning_rate=learning_rate, 
                             weight_decay=weight_decay, num_epochs=num_epochs, latent_dim=latent_dim, 
@@ -73,17 +72,26 @@ def main(n_sets, n_samples, high_dim, latent_dim, epsilon_var, std_A, non_linear
         output[data_set]['Lin_regression'] = scores
         df = pd.DataFrame(scores).T
         print(df)
+    all_scores = [pd.DataFrame(output[data_set]['Lin_regression']).T for data_set in output.keys()]
+    combined_scores = pd.concat(all_scores, axis=0)
+    summary_scores = combined_scores.groupby(combined_scores.index).aggregate(['mean', 'std'])
+    means = summary_scores.xs('mean', axis=1, level=1)
+    stds  = summary_scores.xs('std', axis=1, level=1)
+    formatted_scores = means.round(4).astype(str) + " (" + stds.round(4).astype(str) + ")"
+    formatted_scores.to_csv(os.path.join(folder, "formatted_scores.csv"))
+    print(formatted_scores)
 
 if __name__ == "__main__":
-    n_sets = 1
+    
+    n_sets = 5
     n_samples = 10000
-    high_dim = 200
-    latent_dim = 30
-    epsilon_var = 1
+    high_dim = [100, 200, 500, 1000]
+    latent_dim = [10, 20, 50, 100]
+    epsilon_snr = 2
     std_A = 10
-    non_linear_ratio = 0
-    cross_ratio = .75
-    sparsity = .5
+    non_linear_ratio = .3
+    cross_ratio = .3
+    sparsity = .7
     s2nr = 1
     learning_rate = 1e-3
     weight_decay = 1e-4
@@ -94,6 +102,12 @@ if __name__ == "__main__":
     verbose = False
     n_iter = 5000
     tol = 1e-3
-    main(n_sets, n_samples, high_dim, latent_dim, epsilon_var, std_A, non_linear_ratio, cross_ratio,
-            sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
-            n_iter, tol)
+    start_time = time.time()
+    for i, j in zip(high_dim, latent_dim):
+        print(f"Running with high_dim: {i}, latent_dim: {j}")
+        main(n_sets, n_samples, i, j, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
+                sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+                n_iter, tol)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))

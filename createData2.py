@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 
-def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_var=1, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1):
+def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_snr=1, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1):
     random_seed = np.random.randint(0, 10000)  # Random seed for reproducibility
     next_set = len(os.listdir("data4")) + 1 if os.path.exists("data4") else 1
     folder_name = f"data4/{next_set}_sim_{n_samples}_{high_dim}_{latent_dim}_{non_linear_ratio}_{cross_ratio}_{sparsity}_{s2nr}"
@@ -20,7 +20,7 @@ def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_var=1,
         else:
             print(f"Set {i+1} already exists in folder: {folder_name}. Skipping creation.")
 
-        sim = DataSim(n_samples=n_samples, latent_dim=latent_dim, high_dim=high_dim, epsilon_var=epsilon_var, std_A=std_A, random_seed=random_seed, non_linear_ratio=non_linear_ratio, cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr)
+        sim = DataSim(n_samples=n_samples, latent_dim=latent_dim, high_dim=high_dim, epsilon_snr=epsilon_snr, std_A=std_A, random_seed=random_seed, non_linear_ratio=non_linear_ratio, cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr)
         sim.writeToFile(f"{folder_name}/set_{i+1}/data")
         random_seed += 1  # Increment the random seed for the next set
     return folder_name

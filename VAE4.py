@@ -40,7 +40,7 @@ class VAE(nn.Module):
         
         self.beta = beta
         self.latent_dim = latent_dim
-        self.hidden_layer_size = 100
+        self.hidden_layer_size = latent_dim*3
         
         encoder = []
 

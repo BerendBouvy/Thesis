@@ -5,7 +5,7 @@ import csv
 
 
 class DataSim:
-    def __init__(self, n_samples=100, latent_dim=1, epsilon_var=1, high_dim=1, std_A=1, random_seed=47, non_linear_ratio=0.25, cross_ratio=.25, sparsity=1, s2nr=.1):
+    def __init__(self, n_samples=100, latent_dim=1, epsilon_snr=1, high_dim=1, std_A=1, random_seed=47, non_linear_ratio=0.25, cross_ratio=.25, sparsity=1, s2nr=.1):
         """ Initialize the DataSim object.
         Args:
             n_samples (int): Number of samples to generate.
@@ -18,7 +18,7 @@ class DataSim:
         self.n_samples = n_samples
         self.latent_dim = latent_dim
         self.high_dim = high_dim
-        self.epsilon_var = epsilon_var
+        self.epsilon_snr = epsilon_snr
         self.std_A = std_A
         self.non_linear_ratio = non_linear_ratio
         self.cross_ratio = cross_ratio
@@ -41,9 +41,11 @@ class DataSim:
 
     def latentModel(self):
         latent_x = self.rng.normal(size=(self.n_samples, self.latent_dim), scale=1)
-        latent_x += self.rng.normal(size=latent_x.shape, scale=5)
-        beta = self.rng.normal(size=(self.latent_dim, 1), scale=5)
-        epsilon = self.rng.normal(size=(self.n_samples, 1), scale=self.epsilon_var)
+        # latent_x += self.rng.normal(size=latent_x.shape, scale=100)
+        beta = self.rng.normal(size=(self.latent_dim, 1), scale=2)
+        beta_norm2 = np.linalg.norm(beta, ord=2)
+        epsilon_var = beta_norm2 / self.epsilon_snr
+        epsilon = self.rng.normal(size=(self.n_samples, 1), scale=epsilon_var)
         y = latent_x @ beta + epsilon
         return latent_x, beta, epsilon, y
 
@@ -78,7 +80,7 @@ class DataSim:
             nonLinFunc.polynomial,
             # nonLinFunc.exp,
             nonLinFunc.log,
-            # nonLinFunc.smooth_abs,
+            nonLinFunc.smooth_abs,
             # nonLinFunc.tanh,
             # nonLinFunc.sigmoid,
             nonLinFunc.sin,

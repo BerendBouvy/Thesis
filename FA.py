@@ -56,7 +56,8 @@ def reconstruction_loss(test_loader, FA_model, VAE_model):
     # VAE_recon_mse = 0
     with torch.no_grad():
         VAE_output = VAE_model.forward(test_data_tensor, compute_loss=True)
-        VAE_latent = VAE_output.z_sample.numpy()
+        # VAE_latent = VAE_output.z_sample.numpy()
+        VAE_latent = VAE_output.z_dist.mean.numpy()
         VAE_recon_mse = VAE_output.loss_recon.item()
         # for data in test_loader:
         #     out = VAE_model(data[0], compute_loss=True)

@@ -37,6 +37,7 @@ def train_model(source: str, paths: list[str], learning_rate: float, weight_deca
         
     output = {}
     for path in paths:
+        print(f"Training path: {path}")
         writer = SummaryWriter(f'runs/{source}vae_{path}_{datetime.now().strftime("%Y%m%d-%H%M%S")}')
         # Load the dataset
         train_loader, val_loader, test_loader, scaler = data_loader(os.path.join(source, path, 'data.csv'), batch_size=batch_size, target=target)
