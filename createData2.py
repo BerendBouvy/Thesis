@@ -3,10 +3,10 @@ import os
 import numpy as np
 
 
-def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_snr=1, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1):
+def create_data(n_sets, n_samples=100, high_dim=10, latent_dim=9, epsilon_snr=1, std_A=1, non_linear_ratio=0.5, cross_ratio=0.5, sparsity=1, s2nr=0.1, folder_name="data"):
     random_seed = np.random.randint(0, 10000)  # Random seed for reproducibility
-    next_set = len(os.listdir("data4")) + 1 if os.path.exists("data4") else 1
-    folder_name = f"data4/{next_set}_sim_{n_samples}_{high_dim}_{latent_dim}_{non_linear_ratio}_{cross_ratio}_{sparsity}_{s2nr}"
+    next_set = len(os.listdir(folder_name)) + 1 if os.path.exists(folder_name) else 1
+    folder_name = f"{folder_name}/{next_set}_sim_{n_samples}_{high_dim}_{latent_dim}_{non_linear_ratio}_{cross_ratio}_{sparsity}_{s2nr}"
     if not os.path.exists(folder_name):
         print(f"Creating folder: {folder_name}")
         os.makedirs(folder_name)

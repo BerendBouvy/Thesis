@@ -42,7 +42,7 @@ class DataSim:
     def latentModel(self):
         latent_x = self.rng.normal(size=(self.n_samples, self.latent_dim), scale=1)
         # latent_x += self.rng.normal(size=latent_x.shape, scale=100)
-        beta = self.rng.normal(size=(self.latent_dim, 1), scale=2)
+        beta = self.rng.normal(size=(self.latent_dim, 1), scale=10)
         beta_norm2 = np.linalg.norm(beta, ord=2)
         epsilon_var = beta_norm2 / self.epsilon_snr
         epsilon = self.rng.normal(size=(self.n_samples, 1), scale=epsilon_var)
