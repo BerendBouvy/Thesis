@@ -38,18 +38,23 @@ class VAE(nn.Module):
     def __init__(self, input_dim, latent_dim, density: int=1, beta: float=1.0):
         super(VAE, self).__init__()
         
+        # self.dropout = True
+        self.dropout = False
+        
         self.beta = beta
-        self.latent_dim = latent_dim
-        self.hidden_layer_size = latent_dim*3
+        self.latent_dim = int(latent_dim/1)
+        self.hidden_layer_size = int(self.latent_dim*2)
         
         encoder = []
 
         encoder.append(nn.Linear(input_dim, self.hidden_layer_size))
         encoder.append(nn.SiLU())
-        for _ in range(density):
+        for i in range(density):
             encoder.append(nn.Linear(self.hidden_layer_size, self.hidden_layer_size))
             encoder.append(nn.SiLU())
-        encoder.append(nn.Linear(self.hidden_layer_size, 2 * latent_dim))
+            if self.dropout and i == 0:
+                encoder.append(nn.Dropout(0.05))
+        encoder.append(nn.Linear(self.hidden_layer_size, 2 * self.latent_dim))
 
             
         self.encoder = nn.Sequential(*encoder)
@@ -57,7 +62,7 @@ class VAE(nn.Module):
         self.softplus = nn.Softplus()
         
         decoder = []
-        decoder.append(nn.Linear(latent_dim, self.hidden_layer_size))
+        decoder.append(nn.Linear(self.latent_dim, self.hidden_layer_size))
         decoder.append(nn.SiLU())
         for _ in range(density):
             decoder.append(nn.Linear(self.hidden_layer_size, self.hidden_layer_size))
