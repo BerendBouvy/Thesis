@@ -43,7 +43,7 @@ class VAE(nn.Module):
         
         self.beta = beta
         self.latent_dim = int(latent_dim/1)
-        self.hidden_layer_size = int(self.latent_dim*2)
+        self.hidden_layer_size = int(self.latent_dim*3)
         
         encoder = []
 
@@ -148,7 +148,7 @@ class VAE(nn.Module):
         )
         loss_kl = torch.distributions.kl.kl_divergence(dist, std_normal).mean()
 
-        loss = loss_recon + self.beta * loss_kl / self.latent_dim
+        loss = loss_recon + self.beta * loss_kl
 
         return VAEOutput(
             z_dist=dist,
@@ -156,7 +156,7 @@ class VAE(nn.Module):
             x_recon=recon_x,
             loss=loss,
             loss_recon=loss_recon,
-            loss_kl=self.beta * loss_kl / self.latent_dim,
+            loss_kl=self.beta * loss_kl,
         )
         
     def set_beta(self, beta: float):

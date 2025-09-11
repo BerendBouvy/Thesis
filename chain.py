@@ -89,8 +89,8 @@ if __name__ == "__main__":
     latent_dim = 20
     epsilon_snr = 1
     std_A = 10
-    non_linear_ratio = .3
-    cross_ratio = .3
+    non_linear_ratio = [0, .125, .25, .375, .5]
+    cross_ratio = [0, .125, .25, .375, .5]
     sparsity = .7
     s2nr = 1
     learning_rate = 1e-3
@@ -102,14 +102,45 @@ if __name__ == "__main__":
     verbose = False
     n_iter = 5000
     tol = 1e-3
-    folder_name = "data9"
+    folder_name = "data11"
     start_time = time.time()
-    main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
-         sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
-         n_iter, tol, folder_name)
+    for i, j in zip(non_linear_ratio, cross_ratio):
+        print(f"Running with non_linear_ratio: {i}, cross_ratio: {j}")
+        main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, i, j,
+             sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+             n_iter, tol, folder_name)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    
+    
+    # n_sets = 5
+    # n_samples = 2000
+    # high_dim = 200
+    # latent_dim = 20
+    # epsilon_snr = 1
+    # std_A = 10
+    # non_linear_ratio = .3
+    # cross_ratio = .3
+    # sparsity = .7
+    # s2nr = 1
+    # learning_rate = 1e-3
+    # weight_decay = 1e-4
+    # num_epochs = 300
+    # density = 1
+    # beta = 0 # np.linspace(0, 5e-1, num_epochs)
+    # batch_size = 64
+    # verbose = False
+    # n_iter = 5000
+    # tol = 1e-3
+    # folder_name = "data9"
+    # start_time = time.time()
+    # main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
+    #      sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+    #      n_iter, tol, folder_name)
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
     
     # n_sets = 5
     # n_samples = 10000

@@ -35,13 +35,14 @@ class LinRegression:
         scores = {}
         for model in self.models:
             metrics = {}
-            metrics['mse'] = np.mean((self.y_test - self.predictions[model]) ** 2)
-            metrics['rmse'] = np.sqrt(metrics['mse'])
-            metrics['mae'] = np.mean(np.abs(self.y_test - self.predictions[model]))
-            metrics['r2'] = 1 - (np.sum((self.y_test - self.predictions[model]) ** 2) / np.sum((self.y_test - np.mean(self.y_test)) ** 2))
-            metrics['adjusted_r2'] = 1 - (1 - metrics['r2']) * (len(self.y_test) - 1) / (len(self.y_test) - self.X_dict_test[model].shape[1] - 1)
-            metrics['bic'] = len(self.y_test) * np.log(metrics['mse']) + (self.X_dict_test[model].shape[1] + 1) * np.log(len(self.y_test))
-            metrics['aic'] = len(self.y_test) * np.log(metrics['mse']) + 2 * (self.X_dict_test[model].shape[1] + 1)
+            # metrics['mse'] = np.mean((self.y_test - self.predictions[model]) ** 2)
+            metrics['rmse'] = np.sqrt(np.mean((self.y_test - self.predictions[model]) ** 2))
+            # metrics['mae'] = np.mean(np.abs(self.y_test - self.predictions[model]))
+            # metrics['r2'] = 1 - (np.sum((self.y_test - self.predictions[model]) ** 2) / np.sum((self.y_test - np.mean(self.y_test)) ** 2))
+            # metrics['adjusted_r2'] = 1 - (1 - metrics['r2']) * (len(self.y_test) - 1) / (len(self.y_test) - self.X_dict_test[model].shape[1] - 1)
+            # metrics['bic'] = len(self.y_test) * np.log(metrics['mse']) + (self.X_dict_test[model].shape[1] + 1) * np.log(len(self.y_test))
+            # metrics['aic'] = len(self.y_test) * np.log(metrics['mse']) + 2 * (self.X_dict_test[model].shape[1] + 1)
+            metrics['predicted R^2'] = 1 - (np.sum((self.y_test - self.predictions[model]) ** 2) / np.sum((self.y_test - np.mean(self.y_test)) ** 2))
             scores[model] = metrics
         return scores
 
