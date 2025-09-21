@@ -14,7 +14,7 @@ from dataLoader import data_loader
 from train import train
 from test_model import test
 import os
-
+import copy
 
 
 
@@ -32,6 +32,8 @@ def train_model(source: str, paths: list[str], learning_rate: float, weight_deca
         scaler (Normalizer): Normalizer used for scaling the dataset.
         dataloaders (list[DataLoader]): List of DataLoaders for training, validation, and testing.
     """
+    early_stopping = True
+    
     if type(beta) is float or type(beta) is int:
         beta = [beta] * num_epochs
         
@@ -60,21 +62,38 @@ def train_model(source: str, paths: list[str], learning_rate: float, weight_deca
             test_loss, _, _ = test(model, val_loader, prev_updates, writer=writer, device=device, latent_dim=latent_dim, verbose=verbose)
             if test_loss < best_loss:
                 best_loss = test_loss
-                best_model = model
+                best_model = copy.deepcopy(model.state_dict())
                 best_epoch = epoch
-        test_loss, test_recon_loss, test_kl_loss = test(best_model, test_loader, prev_updates, writer=None, device=device, latent_dim=latent_dim, verbose=verbose)
 
-        output[path] = {
-            'model': best_model,
-            'test_score': {
-                'loss': test_loss,
-                'recon_loss': test_recon_loss,
-                'kl_loss': test_kl_loss
-            },
-            'best_epoch': best_epoch,
-            'scaler': scaler,
-            'dataloaders': [train_loader, val_loader, test_loader]
-        }
+        if early_stopping:
+            model.load_state_dict(best_model)
+            test_loss, test_recon_loss, test_kl_loss = test(model, test_loader, prev_updates, writer=None, device=device, latent_dim=latent_dim, verbose=verbose)
+
+            output[path] = {
+                'model': model,
+                'test_score': {
+                    'loss': test_loss,
+                    'recon_loss': test_recon_loss,
+                    'kl_loss': test_kl_loss
+                },
+                'best_epoch': best_epoch,
+                'scaler': scaler,
+                'dataloaders': [train_loader, val_loader, test_loader]
+            }
+        else:
+            test_loss, test_recon_loss, test_kl_loss = test(model, test_loader, prev_updates, writer=None, device=device, latent_dim=latent_dim, verbose=verbose)
+
+            output[path] = {
+                'model': model,
+                'test_score': {
+                    'loss': test_loss,
+                    'recon_loss': test_recon_loss,
+                    'kl_loss': test_kl_loss
+                },
+                'best_epoch': best_epoch,
+                'scaler': scaler,
+                'dataloaders': [train_loader, val_loader, test_loader]
+            }
         
     return output
 

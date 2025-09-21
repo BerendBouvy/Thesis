@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 from createData2 import create_data
 from train_model import train_model
+# from train_model6 import train_model
 from FA import train_fa_model, reconstruction_loss
+# from FA6 import train_fa_model, reconstruction_loss
 from Lin_regression2 import LinRegression
 import time
 
@@ -15,10 +17,13 @@ def main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear
                 latent_dim=latent_dim, epsilon_snr=epsilon_snr, std_A=std_A, non_linear_ratio=non_linear_ratio, 
                 cross_ratio=cross_ratio, sparsity=sparsity, s2nr=s2nr, folder_name=folder_name)
     print(f"Data sets created successfully in folder: {folder}")
+    # folder = 'data61/8_sim_2000_200_20_0.45_0.45_0.7_1'
     data_sets = os.listdir(folder)
+    # data_sets.remove('formatted_scores.csv')
     output = train_model(source=folder, paths=data_sets, learning_rate=learning_rate, 
                             weight_decay=weight_decay, num_epochs=num_epochs, latent_dim=latent_dim, 
                             density=density, beta=beta, target=True, batch_size=batch_size, verbose=verbose)
+    VAE_best = 0
     for data_set in output.keys():
         print(f"Processing data set: {data_set}")
         path_full = os.path.join(folder, data_set, 'data.csv')
@@ -72,6 +77,12 @@ def main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear
         output[data_set]['Lin_regression'] = scores
         df = pd.DataFrame(scores).T
         print(df)
+        if scores['VAE_latent']['predicted R^2'] > scores['FA_latent']['predicted R^2'] and \
+            scores['VAE_latent']['predicted R^2'] > scores['full']['predicted R^2']:
+            print(f"VAE performed best for data set: {data_set}\n because {scores['VAE_latent']['predicted R^2']} > {scores['FA_latent']['predicted R^2']} and {scores['VAE_latent']['predicted R^2']} > {scores['full']['predicted R^2']}")
+            VAE_best += 1
+        
+        
     all_scores = [pd.DataFrame(output[data_set]['Lin_regression']).T for data_set in output.keys()]
     combined_scores = pd.concat(all_scores, axis=0)
     summary_scores = combined_scores.groupby(combined_scores.index).aggregate(['mean', 'std'])
@@ -80,8 +91,71 @@ def main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear
     formatted_scores = means.round(4).astype(str) + " (" + stds.round(4).astype(str) + ")"
     formatted_scores.to_csv(os.path.join(folder, "formatted_scores.csv"))
     print(formatted_scores)
+    print(f"VAE performed best in {VAE_best} out of {len(output.keys())} data sets.")
 
 if __name__ == "__main__":
+    
+    
+    
+    # n_sets = 5
+    # n_samples = 2000
+    # high_dim = 200
+    # latent_dim = [10, 20, 50, 80]
+    # epsilon_snr = 1
+    # std_A = 10
+    # non_linear_ratio = .4
+    # cross_ratio = .4
+    # sparsity = .7
+    # s2nr = 1
+    # learning_rate = 1e-3
+    # weight_decay = 1e-4
+    # num_epochs = 250
+    # density = 1
+    # beta = 0# np.linspace(0, 1, num_epochs)
+    # batch_size = 64
+    # verbose = False
+    # n_iter = 5000
+    # tol = 1e-3
+    # folder_name = "data24"
+    # start_time = time.time()
+    # for latent in latent_dim:
+    #     print(f"Running with latent_dim: {latent}")
+    #     main(n_sets, n_samples, high_dim, latent, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
+    #          sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+    #          n_iter, tol, folder_name)
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+
+    # n_sets = 10
+    # n_samples = 2000
+    # high_dim = 200
+    # latent_dim = [15, 20, 25, 30]
+    # epsilon_snr = 1
+    # std_A = 10
+    # non_linear_ratio = .45
+    # cross_ratio = .45
+    # sparsity = .7
+    # s2nr = 1
+    # learning_rate = 1e-3
+    # weight_decay = 1e-4
+    # num_epochs = 150
+    # density = 1
+    # beta = 0
+    # batch_size = 64
+    # verbose = False
+    # n_iter = 5000
+    # tol = 1e-3
+    # folder_name = "data15"
+    # start_time = time.time()
+    # for latent in latent_dim:
+    #     print(f"Running with latent_dim: {latent}")
+    #     main(n_sets, n_samples, high_dim, latent, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
+    #          sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+    #          n_iter, tol, folder_name)
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
     
     n_sets = 5
     n_samples = 2000
@@ -89,29 +163,63 @@ if __name__ == "__main__":
     latent_dim = 20
     epsilon_snr = 1
     std_A = 10
-    non_linear_ratio = [0, .125, .25, .375, .5]
-    cross_ratio = [0, .125, .25, .375, .5]
+    non_linear_ratio = .45
+    cross_ratio = .45
     sparsity = .7
     s2nr = 1
     learning_rate = 1e-3
     weight_decay = 1e-4
-    num_epochs = 300
+    num_epochs = 150
     density = 1
-    beta = 0 # np.linspace(0, 5e-1, num_epochs)
+    beta = [np.zeros(num_epochs),
+            np.linspace(0, 1e-3, num_epochs),
+            np.linspace(0, 1e-2, num_epochs),
+            np.linspace(0, 1e-1, num_epochs)
+           ]
     batch_size = 64
     verbose = False
     n_iter = 5000
     tol = 1e-3
-    folder_name = "data11"
+    folder_name = "data13"
     start_time = time.time()
-    for i, j in zip(non_linear_ratio, cross_ratio):
-        print(f"Running with non_linear_ratio: {i}, cross_ratio: {j}")
-        main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, i, j,
-             sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+    for b in beta:
+        print(f"Running with beta: {b}")
+        main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, non_linear_ratio, cross_ratio,
+             sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, b, verbose,
              n_iter, tol, folder_name)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    
+    # n_sets = 10
+    # n_samples = 2000
+    # high_dim = 200
+    # latent_dim = 20
+    # epsilon_snr = 1
+    # std_A = 10
+    # non_linear_ratio = [0, .125, .25, .375, .5] #[0, .125, .25, .375, .5]
+    # cross_ratio = [0, .125, .25, .375, .5]
+    # sparsity = .7
+    # s2nr = 1
+    # learning_rate = 1e-3
+    # weight_decay = 1e-4
+    # num_epochs = 200
+    # density = 1
+    # beta = 0 # np.linspace(0, 1, num_epochs)
+    # batch_size = 64
+    # verbose = False
+    # n_iter = 5000
+    # tol = 1e-3
+    # folder_name = "data19"
+    # start_time = time.time()
+    # for i, j in zip(non_linear_ratio, cross_ratio):
+    #     print(f"Running with non_linear_ratio: {i}, cross_ratio: {j}")
+    #     main(n_sets, n_samples, high_dim, latent_dim, epsilon_snr, std_A, i, j,
+    #          sparsity, s2nr, learning_rate, weight_decay, num_epochs, batch_size, density, beta, verbose,
+    #          n_iter, tol, folder_name)
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("End time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
     
     
     # n_sets = 5

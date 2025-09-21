@@ -43,7 +43,10 @@ class VAE(nn.Module):
         
         self.beta = beta
         self.latent_dim = int(latent_dim/1)
-        self.hidden_layer_size = int(self.latent_dim*3)
+        if self.latent_dim < 30:
+            self.hidden_layer_size = int(self.latent_dim*2)
+        else:
+            self.hidden_layer_size = int(self.latent_dim*1.3)
         
         encoder = []
 

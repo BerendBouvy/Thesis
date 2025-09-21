@@ -40,14 +40,20 @@ def data_loader(path, batch_size=64, target=True):
     val_dataset = torch.utils.data.Subset(full_dataset, val_indices)
     test_dataset = torch.utils.data.Subset(full_dataset, test_indices)
 
-    # scaler = Normalizer(train_dataset.dataset.X)
-    scaler = Normalizer(train_dataset.dataset.X[train_dataset.indices])
+    # Fit scalers on the training split only
+    x_scaler = Normalizer(train_dataset.dataset.X[train_dataset.indices])
+    full_dataset.X = x_scaler.normalize(full_dataset.X)
     
-    full_dataset.X = scaler.normalize(full_dataset.X)
+    y_scaler = None
+    if target and getattr(full_dataset, 'y', None) is not None:
+        y_scaler = Normalizer(train_dataset.dataset.y[train_dataset.indices])
+        full_dataset.y = y_scaler.normalize(full_dataset.y)
 
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    return train_loader, val_loader, test_loader, scaler
+    # Return scalers bundled together to avoid breaking callers
+    scaler_bundle = {'X': x_scaler, 'y': y_scaler}
+    return train_loader, val_loader, test_loader, scaler_bundle
 
